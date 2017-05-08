@@ -1,5 +1,6 @@
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
+const int delay_millis = 1000; // 屏幕显示一条内容后停留的时间
 const int pin_A = 2; // pin 2, rotary pin
 const int pin_B = 3; // pin 3, rotary pin, but not been used
 const int pin_timer = 8; // pin 8, countdown timer pin
@@ -63,7 +64,7 @@ void displayWelcome() {
 	lcd.print("U jump I count");
 	lcd.display();
 	// Serial.println(count);
-	delay(1000);
+	delay(delay_millis);
 }
 
 void displayJumps() {
@@ -80,7 +81,7 @@ void displayJumps() {
 	lcd.print(":");
 	lcd.print(s);
 	lcd.display();
-	delay(1000);
+	delay(delay_millis);
 }
 
 void displayCountdownCounter() {
@@ -102,14 +103,14 @@ void displayCountdownCounter() {
 	lcd.print(":");
 	lcd.print(s);
 	lcd.display();
-	delay(1000);
+	delay(delay_millis);
 }
 
 void displayCountdownTimer() {
 	lcd.clear();
 	lcd.setCursor(0, 0);
 	lcd.print("Remains: ");
-	int remains = countdown_timer * 1000 - (millis() - jumps_start_time);
+	long remains = countdown_timer * 1000 - (millis() - jumps_start_time);
 	if (remains < 0) {
 		remains = 0;
 	}
@@ -123,7 +124,7 @@ void displayCountdownTimer() {
 	lcd.print("Count:");
 	lcd.print(jumps_count);
 	lcd.display();
-	delay(1000);
+	delay(delay_millis);
 }
 
 void interruptRevolving() {
@@ -148,7 +149,9 @@ void interruptAddCounter() {
 		status_timer = false;
 		countdown_timer = 0;
 	}
-	resetJumps();
+	if (status_jumping) {
+		resetJumps();
+	}
 	countdown_counter += 10;
 	if (countdown_counter > 999) {
 		countdown_counter = 999;
@@ -163,21 +166,23 @@ void interruptAddTimer() {
 		status_counter = false;
 		countdown_counter = 0;
 	}
-	resetJumps();
+	if (status_jumping) {
+		resetJumps();
+	}
 	countdown_timer += 10;
+	Serial.print("countdown_timer = ");
+	Serial.println(countdown_timer);
 	if (countdown_timer > 999) {
 		countdown_timer = 999;
 	}
 }
 
 void resetJumps() {
-	if (status_jumping) {
-		status_ideal = true;
-		status_jumping = false;
-		jumps_count = 0;
-		jumps_current_time = 0;
-		jumps_start_time = 0;
-	}
+	status_ideal = true;
+	status_jumping = false;
+	jumps_count = 0;
+	jumps_current_time = 0;
+	jumps_start_time = 0;
 }
 
 void checkCountdown() {
