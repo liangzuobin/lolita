@@ -63,7 +63,6 @@ void displayWelcome() {
 	lcd.setCursor(0, 0);
 	lcd.print("U jump I count");
 	lcd.display();
-	// Serial.println(count);
 	delay(delay_millis);
 }
 
@@ -73,10 +72,9 @@ void displayJumps() {
 	lcd.print(jumps_count);
 	lcd.setCursor(0, 2);
 	lcd.print("Cost: ");
-	long cost = jumps_current_time - jumps_start_time;
-	long s = cost/1000;
-	long m = s / 60;
-	s = s % 60;
+	long cost = (jumps_current_time - jumps_start_time) / 1000;
+	long m = cost / 60;
+	long s = cost % 60;
 	lcd.print(m);
 	lcd.print(":");
 	lcd.print(s);
@@ -95,10 +93,9 @@ void displayCountdownCounter() {
 	lcd.print(remains);
 	lcd.setCursor(0, 2);
 	lcd.print("Cost: ");
-	long cost = jumps_current_time - jumps_start_time;
-	long s = cost/1000;
-	long m = s / 60;
-	s = s % 60;
+	long cost = (jumps_current_time - jumps_start_time) / 1000;
+	long m = cost / 60;
+	long s = cost % 60;
 	lcd.print(m);
 	lcd.print(":");
 	lcd.print(s);
@@ -110,13 +107,12 @@ void displayCountdownTimer() {
 	lcd.clear();
 	lcd.setCursor(0, 0);
 	lcd.print("Remains: ");
-	long remains = countdown_timer * 1000 - (millis() - jumps_start_time);
+	long remains = countdown_timer - ((jumps_current_time - jumps_start_time) / 1000);
 	if (remains < 0) {
 		remains = 0;
 	}
-	long s = remains / 1000;
-	long m = s / 60;
-	s = s % 60;
+	long m = remains / 60;
+	long s = remains % 60;
 	lcd.print(m);
 	lcd.print(":");
 	lcd.print(s);
@@ -170,8 +166,6 @@ void interruptAddTimer() {
 		resetJumps();
 	}
 	countdown_timer += 10;
-	Serial.print("countdown_timer = ");
-	Serial.println(countdown_timer);
 	if (countdown_timer > 999) {
 		countdown_timer = 999;
 	}
