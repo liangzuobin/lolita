@@ -1,4 +1,9 @@
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+#include <PinChangeInterrupt.h>
+#include <PinChangeInterruptBoards.h>
+#include <PinChangeInterruptPins.h>
+#include <PinChangeInterruptSettings.h>
+
+LiquidCrystal lcd(12, 11, 5, 4, 6, 7);
 
 const int delay_millis = 1000; // 屏幕显示一条内容后停留的时间
 const int pin_A = 2; // pin 2, rotary pin
