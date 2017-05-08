@@ -22,15 +22,6 @@ unsigned long cost;
 unsigned int m = 0;
 unsigned int s = 0;
 
-// unsigned char encoder_B;
-// unsigned char encoder_A_prev = 0;
-// unsigned long count = 0;
-// unsigned long startTime;
-// unsigned long currentTime;
-// unsigned long loopTime;
-// unsigned int m = 0;
-// unsigned int s = 0;
-
 void setup() {
 	lcd.begin(16, 2);
 	lcd.clear();
@@ -40,20 +31,26 @@ void setup() {
 	lcd.clear();
 
 	pinMode(pin_A, INPUT_PULLUP); // rotary pin
+	// pinMode(pin_B, INPUT_PULLUP); // rotary pin
 	pinMode(buttonPin1, INPUT);  // assume it is the countdown timer button 
 	pinMode(buttonPin2, INPUT);  // assume it is the countdown counter button
 
 	pinMode(9, OUTPUT);
 	pinMode(buzzerPin, OUTPUT);
 
-	attachInterrupt(0, revolving(), CHANGE);
-	attachInterrupt(1, addCountdownTimer(), CHANGE);
-	attachInterrupt(2, addCountdownCounter(), CHANGE);
+	attachInterrupt(pin_A, revolving, CHANGE);
+	// attachInterrupt(1, revolving, CHANGE);
+	attachInterrupt(buttonPin1, addCountdownTimer, CHANGE);
+	attachInterrupt(buttonPin2, addCountdownCounter, CHANGE);
 
 	Serial.begin(9600);
 }
 
 void loop() {
+	show();
+}
+
+void show() {
 	lcd.clear();
 	lcd.print("Count: ");
 	lcd.print(jumps_counter);
@@ -65,9 +62,8 @@ void loop() {
 	lcd.print(m);
 	lcd.print(":");
 	lcd.print(s);
-	delay(400);
-	lcd.clear();
-	delay(100);
+	lcd.display();
+	delay(1000);
 }
 
 // button1 press event, add 30s per press to the timer.
@@ -109,15 +105,18 @@ void reset() {
 }
 
 void revolving() {
+	if (digitalRead(pin_A) == LOW) {
+		return;
+	}
 	current_time = millis();
 	if (!jumping) {
 		jumping = true;
-		jumps_start_time == mills();
+		jumps_start_time == millis();
 		countdown = ((countdown_timer > 0) || (countdown_counter > 0));
 	}
 	jumps_counter++; // twice faster than before
-	if (jumps_count > 9999) {
-		jumps_count = 9999;
+	if (jumps_counter > 9999) {
+		jumps_counter = 9999;
 	}
 	cost = current_time - jumps_start_time;
 	if (cost > 999999) {
@@ -127,6 +126,7 @@ void revolving() {
 	if (checkCountDown()) {
 		buzz();
 	}
+	// show();
 }
 
 void buzz() {
