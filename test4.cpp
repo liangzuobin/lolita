@@ -20,32 +20,39 @@ volatile unsigned long jumps_start_time = 0;
 volatile unsigned long jumps_current_time = 0;
 
 void setup() {
+	// pins in the app
 	pinMode(pin_A, INPUT_PULLUP);
 	// pinMode(pin_B, INPUT);
 	pinMode(pin_timer, INPUT);
 	pinMode(pin_counter, INPUT);
 	pinMode(buzzerPin, OUTPUT);
+
+	// attach interrupts
 	attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin_A), interruptRevolving, CHANGE);
 	attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin_timer), interruptAddTimer, RISING);
 	attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin_counter), interruptAddCounter, RISING);
+
+	// begin at port 9600
 	Serial.begin(9600);
 }
 
+// the arduino main loop
 void loop() {
 	lcd.begin(16, 2);
-	while(true) {
-		while(status_ideal) {
+	// there are 4(counter / timer have something to do with jumping) status in this app:
+	// idea: 完全没人用, 跟 jumping 状态相反，你死我活
+	// counter: 设置了倒计数, 进入 jumping 状态后开始倒计
+	// timer: 设置了倒计时, 进入 jumping 状态后开始倒计
+	// 这四种状态之间的切换是通过之前 attachInterrups 来改变的 (除 jumps_count 的计数外, 这样用 interrupts 不太对)
+	while(true) { // 这样用自己写的 while true 好像不会让 LCD 出现乱码了
+		if (status_counter) {
+			displayCountdownCounter();
+		} else if (status_timer) {
+			displayCountdownTimer();
+		} else if (status_jumping) {
+			displayJumps();
+		} else {
 			displayWelcome();
-		}
-		while(status_jumping) {
-			checkCountdown();
-			if (status_counter) {
-				displayCountdownCounter();
-			} else if (status_timer) {
-				displayCountdownTimer();
-			} else {
-				displayJumps();
-			}
 		}
 	}
 }
@@ -86,6 +93,7 @@ void displayCountdownCounter() {
 	}
 	lcd.print(remains);
 	lcd.setCursor(0, 2);
+	lcd.print("Cost: ");
 	long cost = jumps_current_time - jumps_start_time;
 	long s = cost/1000;
 	long m = s / 60;
@@ -101,7 +109,7 @@ void displayCountdownTimer() {
 	lcd.clear();
 	lcd.setCursor(0, 0);
 	lcd.print("Remains: ");
-	int remains = countdown_timer - (millis() - jumps_start_time);
+	int remains = countdown_timer * 1000 - (millis() - jumps_start_time);
 	if (remains < 0) {
 		remains = 0;
 	}
@@ -112,7 +120,7 @@ void displayCountdownTimer() {
 	lcd.print(":");
 	lcd.print(s);
 	lcd.setCursor(0, 2);
-	lcd.print("Count:")
+	lcd.print("Count:");
 	lcd.print(jumps_count);
 	lcd.display();
 	delay(1000);
@@ -140,13 +148,7 @@ void interruptAddCounter() {
 		status_timer = false;
 		countdown_timer = 0;
 	}
-	if (status_jumping) {
-		status_ideal = true;
-		status_jumping = false;
-		jumps_count = 0;
-		jumps_current_time = 0;
-		jumps_start_time = 0;
-	}
+	resetJumps();
 	countdown_counter += 10;
 	if (countdown_counter > 999) {
 		countdown_counter = 999;
@@ -161,16 +163,20 @@ void interruptAddTimer() {
 		status_counter = false;
 		countdown_counter = 0;
 	}
+	resetJumps();
+	countdown_timer += 10;
+	if (countdown_timer > 999) {
+		countdown_timer = 999;
+	}
+}
+
+void resetJumps() {
 	if (status_jumping) {
 		status_ideal = true;
 		status_jumping = false;
 		jumps_count = 0;
 		jumps_current_time = 0;
 		jumps_start_time = 0;
-	}
-	countdown_timer += 10;
-	if (countdown_timer > 999) {
-		countdown_timer = 999;
 	}
 }
 
