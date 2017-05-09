@@ -2,6 +2,7 @@
 #include <PinChangeInterruptBoards.h>
 #include <PinChangeInterruptPins.h>
 #include <PinChangeInterruptSettings.h>
+#include "pitches.h" 
 
 LiquidCrystal lcd(12, 11, 5, 4, 6, 7);
 
