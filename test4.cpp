@@ -5,15 +5,19 @@
 
 LiquidCrystal lcd(12, 11, 5, 4, 6, 7);
 
-const int delay_millis = 1000; // 屏幕显示一条内容后停留的时间
+const int delay_millis = 1000; // LCD display delay
 const int pin_A = 2; // pin 2, rotary pin
-const int pin_B = 3; // pin 3, rotary pin, but not been used
+const int pin_B = 3; // pin 3, rotary pin, but no use
 const int pin_timer = 8; // pin 8, countdown timer pin
 const int pin_counter = 9; // pin 9, countdown counter pin
 const int buzzerPin = 10; // pin 10, buzzer
-unsigned char encoder_A; // useless
-unsigned char encoder_B; // useless
-unsigned char encoder_A_prev = LOW; // useless
+unsigned char encoder_A;
+unsigned char encoder_A_prev = LOW;
+unsigned char encoder_timer;
+unsigned char encoder_timer_prev = LOW;
+unsigned char encoder_counter;
+unsigned char encoder_counter_prev = LOW;
+
 
 volatile bool status_ideal = true; // statuds, is ideal now 
 volatile bool status_jumping = false; // status, is user jumping now
@@ -35,8 +39,8 @@ void setup() {
 
 	// attach interrupts
 	attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin_A), interruptRevolving, CHANGE);
-	attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin_timer), interruptAddTimer, RISING);
-	attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin_counter), interruptAddCounter, RISING);
+	attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin_timer), interruptAddTimer, CHANGE);
+	attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin_counter), interruptAddCounter, CHANGE);
 
 	// begin at port 9600
 	Serial.begin(9600);
@@ -46,11 +50,11 @@ void setup() {
 void loop() {
 	lcd.begin(16, 2);
 	// there are 4(counter / timer have something to do with jumping) status in this app:
-	// idea: 完全没人用, 跟 jumping 状态相反，你死我活
-	// counter: 设置了倒计数, 进入 jumping 状态后开始倒计
-	// timer: 设置了倒计时, 进入 jumping 状态后开始倒计
-	// 这四种状态之间的切换是通过之前 attachInterrups 来改变的 (除 jumps_count 的计数外, 这样用 interrupts 不太对)
-	while(true) { // 这样用自己写的 while true 好像不会让 LCD 出现乱码了
+	// idea: waiting for jumping
+	// counter: countdown counter has been set
+	// timer: countdown timer has been set
+	// jumping: jumping
+	while(true) {  // prevent LCD show unknow characters
 		if (status_counter) {
 			displayCountdownCounter();
 		} else if (status_timer) {
@@ -138,42 +142,65 @@ void interruptRevolving() {
 	if ((encoder_A_prev == LOW) && (encoder_A == HIGH)) {
 		jumps_count++;
 		jumps_current_time = millis();
+		checkCountdown();
 	}
 	encoder_A_prev = encoder_A;
 }
 
 void interruptAddCounter() {
-	if (!status_counter) {
-		status_counter = true;
-	}
-	if (status_timer) {
-		status_timer = false;
-		countdown_timer = 0;
-	}
-	if (status_jumping) {
-		resetJumps();
-	}
-	countdown_counter += 10;
-	if (countdown_counter > 999) {
-		countdown_counter = 999;
+	encoder_counter = digitalRead(pin_counter);
+	if ((encoder_counter_prev == LOW) && (encoder_counter == HIGH)) {
+		if (digitalRead(pin_timer) == HIGH) {
+			resetAll();
+			return;
+		}
+		if (!status_counter) {
+			status_counter = true;
+		}
+		if (status_timer) {
+			status_timer = false;
+			countdown_timer = 0;
+		}
+		if (status_jumping) {
+			resetJumps();
+		}
+		countdown_counter += 10;
+		if (countdown_counter > 999) {
+			countdown_counter = 999;
+		}
 	}
 }
 
 void interruptAddTimer() {
-	if (!status_timer) {
-		status_timer = true;
+	encoder_timer = digitalRead(pin_timer);
+	if ((encoder_timer_prev == LOW) && (encoder_timer == HIGH)) {
+		if (digitalRead(pin_counter) == HIGH) {
+			resetAll();
+			return;
+		}
+		if (!status_timer) {
+			status_timer = true;
+		}
+		if (status_counter) {
+			status_counter = false;
+			countdown_counter = 0;
+		}
+		if (status_jumping) {
+			resetJumps();
+		}
+		countdown_timer += 10;
+		if (countdown_timer > 999) {
+			countdown_timer = 999;
+		}
 	}
-	if (status_counter) {
-		status_counter = false;
-		countdown_counter = 0;
-	}
-	if (status_jumping) {
-		resetJumps();
-	}
-	countdown_timer += 10;
-	if (countdown_timer > 999) {
-		countdown_timer = 999;
-	}
+}
+
+void resetAll() {
+	resetJumps();
+	status_timer = false;
+	countdown_timer = 0;
+	status_counter = false;
+	countdown_counter = 0;
 }
 
 void resetJumps() {
@@ -186,13 +213,15 @@ void resetJumps() {
 
 void checkCountdown() {
 	if (status_counter) {
-		if (countdown_counter - jumps_count) {
+		if (countdown_counter <= jumps_count) {
 			tone(buzzerPin, 1000, 1);
 		}
+		return;
 	} 
 	if (status_timer) {
-		if (countdown_timer - (millis() - jumps_start_time)) {
+		if (countdown_timer <= (jumps_current_time - jumps_start_time) / 1000) {
 			tone(buzzerPin, 1000, 1);
 		}
+		return;
 	}
 }
