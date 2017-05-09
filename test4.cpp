@@ -23,11 +23,14 @@ volatile bool status_ideal = true; // statuds, is ideal now
 volatile bool status_jumping = false; // status, is user jumping now
 volatile bool status_counter = false; // status, countdown jumps counter has been set
 volatile bool status_timer = false; // status, countdown timer has been set
+volatile bool status_buzzer = false; // status, buzzer
 volatile unsigned int jumps_count = 0;  // jumps count, as its name shows
 volatile unsigned int countdown_counter = 0; // goals of jumps to countdown
 volatile unsigned int countdown_timer = 0;
 volatile unsigned long jumps_start_time = 0;
 volatile unsigned long jumps_current_time = 0;
+int noteDurations[] = {4, 8, 8, 4, 4, 4, 4, 4};
+int melody[] = {NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4};
 
 void setup() {
 	// pins in the app
@@ -55,6 +58,9 @@ void loop() {
 	// timer: countdown timer has been set
 	// jumping: jumping
 	while(true) {  // prevent LCD show unknow characters
+		if (status_buzzer) {
+			ring();
+		}
 		if (status_counter) {
 			displayCountdownCounter();
 		} else if (status_timer) {
@@ -164,7 +170,7 @@ void interruptAddCounter() {
 		if (status_jumping) {
 			resetJumps();
 		}
-		countdown_counter += 10;
+		countdown_counter += 50;
 		if (countdown_counter > 999) {
 			countdown_counter = 999;
 		}
@@ -188,7 +194,7 @@ void interruptAddTimer() {
 		if (status_jumping) {
 			resetJumps();
 		}
-		countdown_timer += 10;
+		countdown_timer += 30;
 		if (countdown_timer > 999) {
 			countdown_timer = 999;
 		}
@@ -214,14 +220,27 @@ void resetJumps() {
 void checkCountdown() {
 	if (status_counter) {
 		if (countdown_counter <= jumps_count) {
-			tone(buzzerPin, 1000, 1);
+			status_buzzer = true;
 		}
 		return;
 	} 
 	if (status_timer) {
 		if (countdown_timer <= (jumps_current_time - jumps_start_time) / 1000) {
-			tone(buzzerPin, 1000, 1);
+			status_buzzer = true;
 		}
 		return;
+	}
+}
+
+void ring() {
+	if (status_buzzer) {
+		status_buzzer = false;
+	}
+	for (int thisNote = 0; thisNote < 8; thisNote++) {
+		int noteDuration = 1000 / noteDurations[thisNote];
+		tone(buzzerPin, melody[thisNote], noteDuration);
+		int pauseBetweenNotes = noteDuration * 1.30;
+		delay(pauseBetweenNotes);
+		noTone(8);
 	}
 }
