@@ -220,13 +220,13 @@ void resetJumps() {
 
 void checkCountdown() {
 	if (status_counter) {
-		if (countdown_counter <= jumps_count) {
+		if (countdown_counter == jumps_count) {
 			status_buzzer = true;
 		}
 		return;
 	} 
 	if (status_timer) {
-		if (countdown_timer <= (jumps_current_time - jumps_start_time) / 1000) {
+		if (countdown_timer == (jumps_current_time - jumps_start_time) / 1000) {
 			status_buzzer = true;
 		}
 		return;
