@@ -285,10 +285,10 @@ void ring() {
 	}
 	int size = sizeof(underworld_melody) / sizeof(int);
 	for (int thisNote = 0; thisNote < size; thisNote++) {
-		int noteDuration = 1000 / noteDurations[thisNote];
-		tone(buzzerPin, melody[thisNote], noteDuration);
+		int noteDuration = 1000 / underworld_tempo[thisNote];
+		tone(buzzerPin, underworld_melody[thisNote], noteDuration);
 		int pauseBetweenNotes = noteDuration * 1.30;
 		delay(pauseBetweenNotes);
-		noTone(8);
+		noTone(buzzerPin);
 	}
 }
